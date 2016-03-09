@@ -13,9 +13,9 @@ module Act
   class Sync
 
     def initialize(calendar_id, ical_file=nil, debug=false)
-      @client_id = Config::CLIENT_ID
-      @secret = Config::SECRET
-      @token_file = File.expand_path Config::TOKEN_FILE # remove this file to re-generate token
+      @client_id = RbConfig::CLIENT_ID
+      @secret = RbConfig::SECRET
+      @token_file = File.expand_path RbConfig::TOKEN_FILE # remove this file to re-generate token
       @calendar_id = calendar_id
       @ical_file = ical_file
       @debug = debug
@@ -154,6 +154,28 @@ module Act
       i
     end
 
+    def parse_rrule(rrule)
+      output = ''
+      output << 'FREQ=' + rrule.frequency unless rrule.frequency.nil?
+      output << ';UNTIL=' + rrule.until unless rrule.until.nil?
+      output << ';COUNT=' + rrule.count.to_s unless rrule.count.nil?
+      output << ';INTERVAL=' + rrule.interval.to_s unless rrule.interval.nil?
+      raise 'BY SECOND?\n' + rrule unless rrule.by_second.nil?
+      raise rrule unless rrule.by_minute.nil?
+      raise rrule unless rrule.by_hour.nil?
+      # raise rrule unless rrule.by_day.nil? || rrule.by_day.count <= 1
+      output << ';BYDAY=' + rrule.by_day.join(',') unless rrule.by_day.nil?
+      raise rrule unless rrule.by_month_day.nil? || rrule.by_month_day.count <= 1
+      output << ';BYMONTHDAY=' + rrule.by_month_day.join(',') unless rrule.by_month_day.nil?
+      raise rrule unless rrule.by_year_day.nil?
+      raise rrule unless rrule.by_week_number.nil?
+      raise rrule unless rrule.by_month.nil? || rrule.by_month.count <= 1
+      output << ';BYMONTH=' + rrule.by_month.join(',') unless rrule.by_month.nil?
+      output << ';BYSETPOS=' + rrule.by_set_position.join(',') unless rrule.by_set_position.nil?
+      raise rrule unless rrule.week_start.nil?
+      output
+    end
+
     def parse_attendees(att)
       return nil if att.nil? || att.empty?
       response_status_values = {
@@ -165,7 +187,8 @@ module Act
       parsed = att.map do |a|
         ical_str = a.to_ical('string')
         attendee = {}
-        /EMAIL=(.*?)(?:;|\Z)/.match(ical_str) do |m|
+        # /EMAIL=(.*?)(?:;|\Z)/.match(ical_str) do |m|
+        /mailto:(.*?)(?:;|\Z)/.match(ical_str) do |m|
           attendee['email'] = m.captures[0] && m.captures[0].downcase
         end
         # email required for google
@@ -190,7 +213,7 @@ module Act
       g_evt ||= Google::Event.new
       g_evt.id = gen_id i_evt
       g_evt.title = normalize(i_evt.summary) # if i_evt.respond_to? :summary
-      #g_evt.attendees = parse_attendees(i_evt.attendee)
+      g_evt.attendees = parse_attendees(i_evt.attendee)
       g_evt.description = normalize(i_evt.description)
       g_evt.start_time = Time.parse(i_evt.dtstart.value_ical)
       g_evt.end_time = Time.parse(i_evt.dtend.value_ical) if i_evt.dtend

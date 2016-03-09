@@ -124,6 +124,7 @@ module Google
 
       case response.status
         when 400
+          puts content
           raise HTTPRequestFailed, response.body
         when 403
           wait = wait ? wait * 2 : 1

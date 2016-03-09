@@ -236,7 +236,7 @@ module Google
       if val
         @visibility = Event.parse_visibility(val)
       else
-        @visibility = "default"      
+        @visibility = "default"
       end
     end
 
@@ -323,9 +323,9 @@ module Google
 
       attendees = @attendees.map do |attendee|
         json = "{"
-        json += " \"displayName\": #{attendee['displayName'].to_json}" if attendee['displayName']
-        json += " ,\"email\": #{attendee['email'].to_json}" if attendee['email']
-        json += " ,\"responseStatus\": #{attendee['responseStatus'].to_json}" if attendee['responseStatus']
+        json += " \"displayName\": #{attendee['displayName'].to_json}, " if attendee['displayName']
+        json += "\"email\": #{attendee['email'].to_json}, " if attendee['email']
+        json += "\"responseStatus\": #{attendee['responseStatus'].to_json}" if attendee['responseStatus']
         json += " }"
         json
       end.join(",\n")
@@ -501,20 +501,20 @@ module Google
     # Validates id format
     #
     def self.parse_id(id)
-      raise ArgumentError, "Event ID is invalid. Please check Google documentation: https://developers.google.com/google-apps/calendar/v3/reference/events/insert" unless id.gsub(/(^[a-v0-9]{5,1024}$)/o)      
+      raise ArgumentError, "Event ID is invalid. Please check Google documentation: https://developers.google.com/google-apps/calendar/v3/reference/events/insert" unless id.gsub(/(^[a-v0-9]{5,1024}$)/o)
       return id
     end
 
   # * +status+ - The status of the event (confirmed, tentative or cancelled).
     def self.parse_status(status)
-      raise ArgumentError, "Event status must be 'confirmed', 'tentative' or 'cancelled'." unless ['confirmed', 'tentative', 'cancelled'].include?(status)    
+      raise ArgumentError, "Event status must be 'confirmed', 'tentative' or 'cancelled'." unless ['confirmed', 'tentative', 'cancelled'].include?(status)
       return status
     end
     #
     # Validates visibility value
     #
     def self.parse_visibility(visibility)
-      raise ArgumentError, "Event visibility must be 'default', 'public', 'private' or 'confidential'." unless ['default', 'public', 'private', 'confidential'].include?(visibility)    
+      raise ArgumentError, "Event visibility must be 'default', 'public', 'private' or 'confidential'." unless ['default', 'public', 'private', 'confidential'].include?(visibility)
       return visibility
     end
 

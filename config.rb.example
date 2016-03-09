@@ -1,0 +1,12 @@
+# Module
+module RbConfig
+  # WARNING: Change these settings to reflect your info.
+  # 1. Go to Google Developer Console and create (or use existing) an OAuth Client ID
+  #    with type Other.
+  # 2. Save the JSON token file to your working directory, or the app will prompt you when
+  #    you run it first time.
+  # 3. Grab the Client ID and Client Secret from the Developer's Console
+  CLIENT_ID = 'some_client_id.apps.googleusercontent.com'
+  SECRET = 'some_client_secret'
+  TOKEN_FILE = '~/client_secret.json'
+end
