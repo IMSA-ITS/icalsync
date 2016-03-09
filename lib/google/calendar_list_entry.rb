@@ -1,5 +1,4 @@
 module Google
-
   #
   # Represents a Google Calendar List Entry
   #
@@ -15,7 +14,7 @@ module Google
   #
   class CalendarListEntry
     attr_reader :id, :summary, :time_zone, :access_role, :primary, :connection
-    alias_method :primary?, :primary
+    alias primary? primary
 
     def initialize(params, connection)
       @id = params['id']
@@ -27,14 +26,12 @@ module Google
     end
 
     def to_calendar
-      Calendar.new({:calendar => @id}, @connection)
+      Calendar.new({ calendar: @id }, @connection)
     end
 
     def self.build_from_google_feed(response, connection)
       items = response['items']
       items.collect { |item| CalendarListEntry.new(item, connection) }
     end
-
   end
-
 end

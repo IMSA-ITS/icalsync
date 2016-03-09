@@ -9,10 +9,8 @@ require_relative 'lib/ical_to_gcal'
 require_relative 'config'
 
 module Act
-
   class Sync
-
-    def initialize(calendar_id, ical_file=nil, debug=false)
+    def initialize(calendar_id, ical_file = nil, debug = false)
       @client_id = RbConfig::CLIENT_ID
       @secret = RbConfig::SECRET
       @token_file = File.expand_path RbConfig::TOKEN_FILE # remove this file to re-generate token
@@ -22,7 +20,7 @@ module Act
       #
       # Create an instance of google calendar.
       #
-      raise "missing option calendar_id" if @calendar_id.nil?
+      raise 'missing option calendar_id' if @calendar_id.nil?
 
       check_token
       check_calendar_id
@@ -37,19 +35,19 @@ module Act
     #
     def g_cal
       @g_cal ||= Google::Calendar.new(
-        :client_id     => @client_id,
-        :client_secret => @secret,
-        :calendar      => @calendar_id,
-        :redirect_url  => "urn:ietf:wg:oauth:2.0:oob" # this is what Google uses for 'applications'
+        client_id: @client_id,
+        client_secret: @secret,
+        calendar: @calendar_id,
+        redirect_url: 'urn:ietf:wg:oauth:2.0:oob' # this is what Google uses for 'applications'
       )
     end
 
     def g_cal_active_events
-      g_cal.events_all.select{|e| e.status != 'cancelled'}
+      g_cal.events_all.select { |e| e.status != 'cancelled' }
     end
 
     def flatten(a)
-      return (a.respond_to? :join) ? a.join : a
+      (a.respond_to? :join) ? a.join : a
     end
 
     def normalize(s)
@@ -60,7 +58,7 @@ module Act
     # Generate an id compatile with Google API
     #
     def gen_id(i_cal_evt)
-      return Base32.encode(i_cal_evt.uid.to_s + i_cal_evt.recurrence_id.to_s +  i_cal_evt.sequence.to_s)
+      Base32.encode(i_cal_evt.uid.to_s + i_cal_evt.recurrence_id.to_s + i_cal_evt.sequence.to_s)
     end
 
     #
@@ -74,9 +72,9 @@ module Act
     # Return a ICS Calendar Instance
     #
     def get_i_cal
-      raise "missing ICS file" if @ical_file.nil?
+      raise 'missing ICS file' if @ical_file.nil?
       begin
-        file_content = open(@ical_file) { |f| f.read }
+        file_content = open(@ical_file, &:read)
         icals = Icalendar.parse(file_content)
         puts "Can't proccess ICS file with multiple calendars" && exit(1) if icals.size > 1
         icals.first
@@ -98,22 +96,21 @@ module Act
       return false if a.transparency != b.transparency
       return false if a.start_time != b.start_time
       return false if a.end_time != b.end_time
-      #a.attendees ||= []
-      #b.attendees ||= []
-      #if a.attendees && b.attendees
-        #return false if a.attendees.size != b.attendees.size
-        #a.attendees.sort! { |m, n| m['email'] <=> n['email'] }
-        #b.attendees.sort! { |m, n| m['email'] <=> n['email'] }
-        #a.attendees.zip(b.attendees).each do |m, n|
-          #return false if m['email'] != n['email']
-          #return false if m['responseStatus'] != n['responseStatus']
-        #end
-      #else # one nil and not the other
-        #return false
-      #end
-      return true
+      # a.attendees ||= []
+      # b.attendees ||= []
+      # if a.attendees && b.attendees
+      # return false if a.attendees.size != b.attendees.size
+      # a.attendees.sort! { |m, n| m['email'] <=> n['email'] }
+      # b.attendees.sort! { |m, n| m['email'] <=> n['email'] }
+      # a.attendees.zip(b.attendees).each do |m, n|
+      # return false if m['email'] != n['email']
+      # return false if m['responseStatus'] != n['responseStatus']
+      # end
+      # else # one nil and not the other
+      # return false
+      # end
+      true
     end
-
 
     #
     # Check oauth2.0 refresh token.
@@ -121,11 +118,11 @@ module Act
     #
     def check_token
       if File.exist?(@token_file)
-        refresh_token = open(@token_file) { |f| f.read }.chomp
+        refresh_token = open(@token_file, &:read).chomp
         g_cal.login_with_refresh_token(refresh_token)
       else
         # A user needs to approve access in order to work with their calendars.
-        puts "Visit the following web page in your browser and approve access."
+        puts 'Visit the following web page in your browser and approve access.'
         puts g_cal.authorize_url
         puts "\nCopy the code that Google returned and paste it here:"
 
@@ -143,7 +140,7 @@ module Act
     #
     def purge
       i = 0
-      debug "Purge events on GCal... "
+      debug 'Purge events on GCal... '
       g_cal.events_all.each do |e|
         next if e.status == 'cancelled'
         debug "Delete: #{e}"
@@ -231,12 +228,11 @@ module Act
       puts s
     end
 
-
     #
     # Debugging function
     #
     def compare_debug(a, b)
-      puts "---"
+      puts '---'
       puts "id #{a.id}"
       puts "id #{b.id}"
       puts "desc #{a.description}"
@@ -249,19 +245,18 @@ module Act
       puts "start_time #{b.start_time}"
       puts "end_time #{a.end_time}"
       puts "end_time #{b.end_time}"
-      #puts "attendess a #{a.attendees}"
-      #puts "attendess b #{b.attendees}"
-      #puts "attendees a - b:#{a.attendees - b.attendees}" if a.attendees && b.attendees
-      #puts "attendees a count :#{a.attendees.size}" if a.attendees
-      #puts "attendees b count :#{b.attendees.size}" if b.attendees
-      puts "---"
+      # puts "attendess a #{a.attendees}"
+      # puts "attendess b #{b.attendees}"
+      # puts "attendees a - b:#{a.attendees - b.attendees}" if a.attendees && b.attendees
+      # puts "attendees a count :#{a.attendees.size}" if a.attendees
+      # puts "attendees b count :#{b.attendees.size}" if b.attendees
+      puts '---'
     end
 
     #
     # Core funcion
     #
     def sync
-
       idem = created = updated = restored = removed = cancelled_ics = 0
       # load Google events from API, including deleted.
       g_events = g_cal.events_all
@@ -288,7 +283,7 @@ module Act
               debug g_evt
               g_evt.save
             else
-              idem +=1
+              idem += 1
             end
           else # Element not found, create
             created += 1
@@ -305,11 +300,10 @@ module Act
 
       # Delete remaining Google events
       g_events.each do |e|
-        if e.status != 'cancelled'
-          debug "Delete: #{e}"
-          e.delete
-          removed += 1
-        end
+        next unless e.status != 'cancelled'
+        debug "Delete: #{e}"
+        e.delete
+        removed += 1
       end
 
       debug "ICAL size: #{@ical.events.size}"
@@ -320,8 +314,8 @@ module Act
       debug "Removed size: #{removed}"
       debug "Cancelled size: #{cancelled_ics}"
       debug "Idem + Created + Updated + Restored: #{idem + created + updated + restored}"
-      {idem: idem, created: created, updated: updated, restored:restored, removed: removed,
-       cancelled_ics: cancelled_ics, sum: idem + created + updated + restored}
+      { idem: idem, created: created, updated: updated, restored: restored, removed: removed,
+        cancelled_ics: cancelled_ics, sum: idem + created + updated + restored }
     end
   end
 end

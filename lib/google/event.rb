@@ -2,7 +2,6 @@ require 'time'
 require 'json'
 
 module Google
-
   #
   # Represents a Google Event.
   #
@@ -29,7 +28,7 @@ module Google
   #
   class Event
     attr_reader :raw, :html_link
-    attr_accessor :id, :status, :title, :location, :calendar,  :quickadd, :transparency, :attendees, :description, :reminders, :recurrence, :visibility
+    attr_accessor :id, :status, :title, :location, :calendar, :quickadd, :transparency, :attendees, :description, :reminders, :recurrence, :visibility
 
     #
     # Create a new event, and optionally set it's attributes.
@@ -71,9 +70,7 @@ module Google
       @id = Event.parse_id(id) unless id.nil?
     end
 
-    def new_event=(bool)
-      @new_event = bool
-    end
+    attr_writer :new_event
 
     def status=(status)
       @status = Event.parse_status(status) unless status.nil?
@@ -83,8 +80,8 @@ module Google
     # Sets the start time of the Event.  Must be a Time object or a parse-able string representation of a time.
     #
     def start_time=(time)
-      #@start_time = Event.parse_time(time)
-      raise "start_time must be Time" unless time.is_a?(Time)
+      # @start_time = Event.parse_time(time)
+      raise 'start_time must be Time' unless time.is_a?(Time)
       @start_time = time.dup.utc
     end
 
@@ -93,11 +90,7 @@ module Google
     #
     # If no time is set (i.e. new event) it defaults to the current time.
     #
-    def start_time
-      #@start_time ||= Time.now.utc
-      #(@start_time.is_a? String) ? @start_time : @start_time.xmlschema
-      @start_time
-    end
+    attr_reader :start_time
 
     #
     # Get the end_time of the event.
@@ -106,19 +99,19 @@ module Google
     #
     def end_time
       @end_time ||= Time.now.utc + (60 * 60) # seconds * min
-      #(@end_time.is_a? String) ? @end_time : @end_time.xmlschema
+      # (@end_time.is_a? String) ? @end_time : @end_time.xmlschema
     end
 
     #
     # Sets the end time of the Event.  Must be a Time object or a parse-able string representation of a time.
     #
-    #def end_time=(time)
-      #@end_time = Event.parse_time(time)
-      #raise ArgumentError, "End Time must be either Time or String" unless (time.is_a?(String) || time.is_a?(Time))
-      #@end_time = (time.is_a? String) ? Time.parse(time) : time.dup.utc
-    #end
+    # def end_time=(time)
+    # @end_time = Event.parse_time(time)
+    # raise ArgumentError, "End Time must be either Time or String" unless (time.is_a?(String) || time.is_a?(Time))
+    # @end_time = (time.is_a? String) ? Time.parse(time) : time.dup.utc
+    # end
     def end_time=(time)
-      raise "end_time must be Time" unless time.is_a?(Time)
+      raise 'end_time must be Time' unless time.is_a?(Time)
       @end_time = time.dup.utc
     end
 
@@ -129,23 +122,23 @@ module Google
       time = start_time.dup
       time.localtime
       # 3600 for dst
-      (duration % (24 * 60 * 60)).between?(-3600, 3600) && time == Time.local(time.year,time.month,time.day)
+      (duration % (24 * 60 * 60)).between?(-3600, 3600) && time == Time.local(time.year, time.month, time.day)
     end
 
     #
     # Makes an event all day, by setting it's start time to the passed in time and it's end time 24 hours later.
     # Note: this will clobber both the start and end times currently set.
     #
-    #def all_day(time, end_time=nil)
-      #if time.class == String
-        #time = Time.parse(time)
-      #end
-      #if end_time.class == String
-        #end_time = Time.parse(end_time)
-      #end
-      #@start_time = time.strftime("%Y-%m-%d")
-      #@end_time = end_time ? end_time.strftime("%Y-%m-%d"): (time + 24*60*60).strftime("%Y-%m-%d")
-    #end
+    # def all_day(time, end_time=nil)
+    # if time.class == String
+    # time = Time.parse(time)
+    # end
+    # if end_time.class == String
+    # end_time = Time.parse(end_time)
+    # end
+    # @start_time = time.strftime("%Y-%m-%d")
+    # @end_time = end_time ? end_time.strftime("%Y-%m-%d"): (time + 24*60*60).strftime("%Y-%m-%d")
+    # end
 
     #
     # Duration of the event in seconds
@@ -206,11 +199,11 @@ module Google
     # You can pass true or false.  Defaults to transparent.
     #
     def transparency=(val)
-      if val == false || val.to_s.downcase == 'opaque'
-        @transparency = 'opaque'
-      else
-        @transparency = 'transparent'
-      end
+      @transparency = if val == false || val.to_s.casecmp('opaque').zero?
+                        'opaque'
+                      else
+                        'transparent'
+                      end
     end
 
     #
@@ -218,7 +211,7 @@ module Google
     # Transparent events do not block time on a calendar.
     #
     def transparent?
-      @transparency == "transparent"
+      @transparency == 'transparent'
     end
 
     #
@@ -226,18 +219,18 @@ module Google
     # Opaque events block time on a calendar.
     #
     def opaque?
-      @transparency == "opaque"
+      @transparency == 'opaque'
     end
 
     #
     # Sets the visibility of the Event.
     #
     def visibility=(val)
-      if val
-        @visibility = Event.parse_visibility(val)
-      else
-        @visibility = "default"
-      end
+      @visibility = if val
+                      Event.parse_visibility(val)
+                    else
+                      'default'
+                    end
     end
 
     #
@@ -245,35 +238,35 @@ module Google
     #
     def self.build_from_google_feed(response, calendar)
       events = response['items'] ? response['items'] : [response]
-      events.collect {|e| new_from_feed(e, calendar)}.flatten
+      events.collect { |e| new_from_feed(e, calendar) }.flatten
     end
 
     ##
     ## Google JSON representation of an event object.
     ##
-    #def to_json
-      #json = "{\n"
-      #json += "\"id\": #{id.to_json},\n" if id
-      #json += "\"status\": #{status.to_json},\n" if status
-      #json += "\"summary\": #{title.to_json},\n" if title
-      #json += "\"visibility\": #{visibility.to_json},\n" if visibility
-      #json += "\"description\": #{description.to_json},\n" if description
-      #json += "\"location\": #{location.to_json},\n" if location
-      #json += "\"start\": {\n"
-      #json += "\t\"dateTime\": \"#{start_time}\"\n"
-      #json += " #{timezone_needed? ? local_timezone_json : ''}"
-      #json += "}\n,"
-      #json += "\"end\": {\n"
-      #json += "\t\"dateTime\": \"#{end_time}\"\n"
-      #json += "#{timezone_needed? ? local_timezone_json : ''}"
-      #json += "},\n"
-      #json += "#{recurrence_json}"
-      #json += "#{attendees_json}"
-      #json += "\"reminders\": {\n"
-        #json += "#{reminders_json}"
-      #json += " }\n"
-    #json += "}\n"
-    #end
+    # def to_json
+    # json = "{\n"
+    # json += "\"id\": #{id.to_json},\n" if id
+    # json += "\"status\": #{status.to_json},\n" if status
+    # json += "\"summary\": #{title.to_json},\n" if title
+    # json += "\"visibility\": #{visibility.to_json},\n" if visibility
+    # json += "\"description\": #{description.to_json},\n" if description
+    # json += "\"location\": #{location.to_json},\n" if location
+    # json += "\"start\": {\n"
+    # json += "\t\"dateTime\": \"#{start_time}\"\n"
+    # json += " #{timezone_needed? ? local_timezone_json : ''}"
+    # json += "}\n,"
+    # json += "\"end\": {\n"
+    # json += "\t\"dateTime\": \"#{end_time}\"\n"
+    # json += "#{timezone_needed? ? local_timezone_json : ''}"
+    # json += "},\n"
+    # json += "#{recurrence_json}"
+    # json += "#{attendees_json}"
+    # json += "\"reminders\": {\n"
+    # json += "#{reminders_json}"
+    # json += " }\n"
+    # json += "}\n"
+    # end
     #
     # Google JSON representation of an event object.
     #
@@ -285,11 +278,11 @@ module Google
       json += "\"visibility\": #{visibility.to_json},\n" if visibility
       json += "\"description\": #{description.to_json},\n" if description
       json += "\"location\": #{location.to_json},\n" if location
-      json += "#{dates_json}"
-      json += "#{recurrence_json}"
-      json += "#{attendees_json}"
+      json += dates_json.to_s
+      json += recurrence_json.to_s
+      json += attendees_json.to_s
       json += "\"reminders\": {\n"
-      json += "#{reminders_json}"
+      json += reminders_json.to_s
       json += " }\n"
       json += "}\n"
     end
@@ -304,7 +297,7 @@ module Google
       json += "}\n,"
       json += "\"end\": {\n"
       json += "\t\"#{date_type}\": \"#{_end}\"\n"
-      json += "#{timezone_needed? ? local_timezone_json : ''}"
+      json += (timezone_needed? ? local_timezone_json : '').to_s
       json += "},\n"
     end
 
@@ -313,20 +306,20 @@ module Google
     #
     def attendees_json
       return unless @attendees
-      #attendees = @attendees.map do |attendee|
-        #"{
-          #\"displayName\": \"{attendee['displayName']}\",
-          #\"email\": \"{attendee['email']}\",
-          #\"responseStatus\": \"{attendee['responseStatus']}\"
-        #}"
-      #end.join(",\n")
+      # attendees = @attendees.map do |attendee|
+      # "{
+      # \"displayName\": \"{attendee['displayName']}\",
+      # \"email\": \"{attendee['email']}\",
+      # \"responseStatus\": \"{attendee['responseStatus']}\"
+      # }"
+      # end.join(",\n")
 
       attendees = @attendees.map do |attendee|
-        json = "{"
+        json = '{'
         json += " \"displayName\": #{attendee['displayName'].to_json}, " if attendee['displayName']
         json += "\"email\": #{attendee['email'].to_json}, " if attendee['email']
         json += "\"responseStatus\": #{attendee['responseStatus'].to_json}" if attendee['responseStatus']
-        json += " }"
+        json += ' }'
         json
       end.join(",\n")
 
@@ -346,7 +339,7 @@ module Google
         end.join(",\n")
         "\n\"useDefault\": false,\n\"overrides\": [\n#{overrides}]"
       else
-        "\"useDefault\": true"
+        '"useDefault": true'
       end
     end
 
@@ -371,7 +364,7 @@ module Google
       return unless @recurrence && @recurrence[:freq]
 
       @recurrence[:until] = @recurrence[:until].strftime('%Y%m%dT%H%M%SZ') if @recurrence[:until]
-      rrule = "RRULE:" + @recurrence.collect { |k,v| "#{k}=#{v}" }.join(';').upcase
+      rrule = 'RRULE:' + @recurrence.collect { |k, v| "#{k}=#{v}" }.join(';').upcase
       @recurrence[:until] = Time.parse(@recurrence[:until]) if @recurrence[:until]
 
       "\"recurrence\": [\n\"#{rrule}\"],"
@@ -381,7 +374,7 @@ module Google
     # String representation of an event object.
     #
     def to_s
-      "Event Id '#{self.id}'
+      "Event Id '#{id}'
       \tStatus: #{status}
       \tTitle: #{title}
       \tStarts: #{start_time}
@@ -413,20 +406,20 @@ module Google
     # Returns true if the event will use quickadd when it is saved.
     #
     def use_quickadd?
-      quickadd && id == nil
+      quickadd && id.nil?
     end
 
     #
     # Returns true if this a new event.
     #
     def new_event?
-      #id == nil || id == ''
+      # id == nil || id == ''
       @new_event
     end
 
-    #def ==(other)
-      #self.id == other.id
-    #end
+    # def ==(other)
+    # self.id == other.id
+    # end
 
     protected
 
@@ -434,24 +427,24 @@ module Google
     # Create a new event from a google 'entry'
     #
     def self.new_from_feed(e, calendar) #:nodoc:
-      event = Event.new(:id           => e['id'],
-                :calendar     => calendar,
-                :status       => e['status'],
-                :raw          => e,
-                :title        => e['summary'],
-                :description  => e['description'],
-                :location     => e['location'],
-                :start_time   => Event.parse_json_time(e['start']),
-                :end_time     => Event.parse_json_time(e['end']),
-                :transparency => e['transparency'],
-                :html_link    => e['htmlLink'],
-                :updated      => e['updated'],
-                :reminders    => e['reminders'],
-                :attendees    => e['attendees'],
-                :recurrence   => Event.parse_recurrence_rule(e['recurrence']),
-                :visibility   => e['visibility'] )
+      event = Event.new(id: e['id'],
+                        calendar: calendar,
+                        status: e['status'],
+                        raw: e,
+                        title: e['summary'],
+                        description: e['description'],
+                        location: e['location'],
+                        start_time: Event.parse_json_time(e['start']),
+                        end_time: Event.parse_json_time(e['end']),
+                        transparency: e['transparency'],
+                        html_link: e['htmlLink'],
+                        updated: e['updated'],
+                        reminders: e['reminders'],
+                        attendees: e['attendees'],
+                        recurrence: Event.parse_recurrence_rule(e['recurrence']),
+                        visibility: e['visibility'])
       event.new_event = false
-      return event
+      event
     end
 
     #
@@ -493,7 +486,7 @@ module Google
     # A utility method used centralize time parsing.
     #
     def self.parse_time(time) #:nodoc
-      raise ArgumentError, "Start Time must be either Time or String" unless (time.is_a?(String) || time.is_a?(Time))
+      raise ArgumentError, 'Start Time must be either Time or String' unless time.is_a?(String) || time.is_a?(Time)
       (time.is_a? String) ? Time.parse(time) : time.dup.utc
     end
 
@@ -501,22 +494,22 @@ module Google
     # Validates id format
     #
     def self.parse_id(id)
-      raise ArgumentError, "Event ID is invalid. Please check Google documentation: https://developers.google.com/google-apps/calendar/v3/reference/events/insert" unless id.gsub(/(^[a-v0-9]{5,1024}$)/o)
-      return id
+      raise ArgumentError, 'Event ID is invalid. Please check Google documentation: https://developers.google.com/google-apps/calendar/v3/reference/events/insert' unless id.gsub(/(^[a-v0-9]{5,1024}$)/o)
+      id
     end
 
-  # * +status+ - The status of the event (confirmed, tentative or cancelled).
+    # * +status+ - The status of the event (confirmed, tentative or cancelled).
     def self.parse_status(status)
-      raise ArgumentError, "Event status must be 'confirmed', 'tentative' or 'cancelled'." unless ['confirmed', 'tentative', 'cancelled'].include?(status)
-      return status
+      raise ArgumentError, "Event status must be 'confirmed', 'tentative' or 'cancelled'." unless %w(confirmed tentative cancelled).include?(status)
+      status
     end
+
     #
     # Validates visibility value
     #
     def self.parse_visibility(visibility)
-      raise ArgumentError, "Event visibility must be 'default', 'public', 'private' or 'confidential'." unless ['default', 'public', 'private', 'confidential'].include?(visibility)
-      return visibility
+      raise ArgumentError, "Event visibility must be 'default', 'public', 'private' or 'confidential'." unless %w(default public private confidential).include?(visibility)
+      visibility
     end
-
   end
 end

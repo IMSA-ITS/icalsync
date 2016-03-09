@@ -1,11 +1,9 @@
 module Google
-
   #
   # Calendar is the main object you use to interact with events.
   # use it to find, create, update and delete them.
   #
   class Calendar
-
     attr_reader :id, :connection
 
     #
@@ -26,12 +24,12 @@ module Google
     #                      :redirect_url => "urn:ietf:wg:oauth:2.0:oob" # this is what Google uses for 'applications'
     #                     )
     #
-    def initialize(params={}, connection=nil)
+    def initialize(params = {}, connection = nil)
       @connection = connection || Connection.new(
-        :client_id => params[:client_id],
-        :client_secret => params[:client_secret],
-        :refresh_token => params[:refresh_token],
-        :redirect_url => params[:redirect_url]
+        client_id: params[:client_id],
+        client_secret: params[:client_secret],
+        refresh_token: params[:refresh_token],
+        redirect_url: params[:redirect_url]
       )
 
       @id = params[:calendar]
@@ -39,7 +37,7 @@ module Google
 
     def exist?
       begin
-        response = @connection.send("/calendars/#{CGI::escape @id}", :get)
+        response = @connection.send("/calendars/#{CGI.escape @id}", :get)
       rescue HTTPNotFound
         return false
       end
@@ -96,10 +94,10 @@ module Google
     #   an array of events if many found.
     #
     def events
-      event_lookup()
+      event_lookup
     end
 
-    def events_all(show_deleted=true)
+    def events_all(show_deleted = true)
       event_lookup_all(show_deleted)
     end
 
@@ -153,7 +151,7 @@ module Google
     #   an array with one element if only one found.
     #   an array of events if many found.
     #
-    def find_future_events(options={})
+    def find_future_events(options = {})
       formatted_start_min = encode_time(Time.now)
       query = "?timeMin=#{formatted_start_min}#{parse_options(options)}"
       event_lookup(query)
@@ -167,7 +165,7 @@ module Google
     #   an array of events if many found.
     #
     def find_event_by_id(id)
-      return nil unless id 
+      return nil unless id
       event_lookup("/#{id}")
     end
 
@@ -214,12 +212,12 @@ module Google
       method = event.new_event? ? :post : :put
       body = event.use_quickadd? ? nil : event.to_json
 
-      query_string =  if event.use_quickadd?
-        "/quickAdd?text=#{event.title}"
-      elsif event.new_event?
-        ''
-      else # update existing event.
-        "/#{event.id}"
+      query_string = if event.use_quickadd?
+                       "/quickAdd?text=#{event.title}"
+                     elsif event.new_event?
+                       ''
+                     else # update existing event.
+                       "/#{event.id}"
       end
 
       send_events_request(query_string, method, body)
@@ -249,57 +247,49 @@ module Google
     # Utility method to centralize time encoding.
     #
     def encode_time(time) #:nodoc:
-      time.utc.strftime("%FT%TZ")
+      time.utc.strftime('%FT%TZ')
     end
 
     #
     # Utility method used to centralize event lookup.
     #
     def event_lookup(query_string = '') #:nodoc:
-      begin
-        response = send_events_request(query_string, :get)
-        events = Event.build_from_google_feed( JSON.parse(response.body) , self) || []
-        return events if events.empty?
-        events.length > 1 ? events : [events[0]]
-      rescue Google::HTTPNotFound => msg
-        puts msg
-        return nil
-      end
+      response = send_events_request(query_string, :get)
+      events = Event.build_from_google_feed(JSON.parse(response.body), self) || []
+      return events if events.empty?
+      events.length > 1 ? events : [events[0]]
+    rescue Google::HTTPNotFound => msg
+      puts msg
+      return nil
     end
 
     def event_lookup_all(show_deleted) #:nodoc:
-      begin
-        events = []
-        page_token = nil
-        sync_token = nil
-        loop do
-          query_string = "?maxResults=2500&showDeleted=#{show_deleted.to_s}"
-          if page_token
-            query_string << "&pageToken=#{page_token}"
-          end
-          if sync_token
-            query_string << "&synctoken=#{sync_token}"
-          end
-          response = send_events_request(query_string, :get)
-          json_body = JSON.parse(response.body)
-          #puts json_body
-          page_token = json_body['nextPageToken']
-          sync_token = json_body['nextSyncToken']
-          last_events = Event.build_from_google_feed(json_body , self)
-          events.push *last_events
-          break if page_token.nil?
-        end
-
-        #mine
-        #/calendars/activeand.co_9r5783gqvaeohdarasseashufc%40group.calendar.google.com/events&pageToken=CigKGnI2cG0wMWM1Z2t0dTdxODlycGVxN3QwbzZzGAEggIDA86b_7twUGg0IABIAGKjYg8X768MC
-        #/calendars/activeand.co_9r5783gqvaeohdarasseashufc%40group.calendar.google.com/events?pageToken=CigKGnI2cG0wMWM1Z2t0dTdxODlycGVxN3QwbzZzGAEggIDA86b_7twUGg0IABIAGKjYg8X768MC
-        #return events if events.empty?
-        #events.length > 1 ? events : [events[0]]
-        return events
-      rescue Google::HTTPNotFound => err
-        puts err
-        return nil
+      events = []
+      page_token = nil
+      sync_token = nil
+      loop do
+        query_string = "?maxResults=2500&showDeleted=#{show_deleted}"
+        query_string << "&pageToken=#{page_token}" if page_token
+        query_string << "&synctoken=#{sync_token}" if sync_token
+        response = send_events_request(query_string, :get)
+        json_body = JSON.parse(response.body)
+        # puts json_body
+        page_token = json_body['nextPageToken']
+        sync_token = json_body['nextSyncToken']
+        last_events = Event.build_from_google_feed(json_body, self)
+        events.push *last_events
+        break if page_token.nil?
       end
+
+      # mine
+      # /calendars/activeand.co_9r5783gqvaeohdarasseashufc%40group.calendar.google.com/events&pageToken=CigKGnI2cG0wMWM1Z2t0dTdxODlycGVxN3QwbzZzGAEggIDA86b_7twUGg0IABIAGKjYg8X768MC
+      # /calendars/activeand.co_9r5783gqvaeohdarasseashufc%40group.calendar.google.com/events?pageToken=CigKGnI2cG0wMWM1Z2t0dTdxODlycGVxN3QwbzZzGAEggIDA86b_7twUGg0IABIAGKjYg8X768MC
+      # return events if events.empty?
+      # events.length > 1 ? events : [events[0]]
+      return events
+    rescue Google::HTTPNotFound => err
+      puts err
+      return nil
     end
 
     #
@@ -307,21 +297,17 @@ module Google
     #
     def setup_event(event) #:nodoc:
       event.calendar = self
-      if block_given?
-        yield(event)
-      end
+      yield(event) if block_given?
       event.save
       event
     end
-
 
     #
     # Wraps the `send` method. Send an event related request to Google.
     #
     def send_events_request(path_and_query_string, method, content = '')
-      #puts("/calendars/#{CGI::escape @id}/events#{path_and_query_string}", method, content)
-      @connection.send("/calendars/#{CGI::escape @id}/events#{path_and_query_string}", method, content)
+      # puts("/calendars/#{CGI::escape @id}/events#{path_and_query_string}", method, content)
+      @connection.send("/calendars/#{CGI.escape @id}/events#{path_and_query_string}", method, content)
     end
   end
-
 end

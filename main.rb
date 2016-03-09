@@ -3,21 +3,21 @@ require 'optparse'
 
 options = OpenStruct.new
 OptionParser.new do |opts|
-  opts.banner = "Usage: icalsync [options]"
+  opts.banner = 'Usage: icalsync [options]'
 
-  opts.on("-f", "--file [ICS_FILE]", "ICS file to sync: local server path or http[s] url") do |o|
+  opts.on('-f', '--file [ICS_FILE]', 'ICS file to sync: local server path or http[s] url') do |o|
     options.ics_file = o
   end
 
-  opts.on("-c", "--calendar-id CAL_ID", "Google calendar ID") do |o|
+  opts.on('-c', '--calendar-id CAL_ID', 'Google calendar ID') do |o|
     options.calendar_id = o
   end
 
-  opts.on("-p", "--purge", "Force removing all Google calendar events and exit") do |o|
+  opts.on('-p', '--purge', 'Force removing all Google calendar events and exit') do |o|
     options.purge = o
   end
 
-  opts.on("-v", "--verbose", "Verbose output") do |o|
+  opts.on('-v', '--verbose', 'Verbose output') do |o|
     options.debug = o
   end
 end.parse!

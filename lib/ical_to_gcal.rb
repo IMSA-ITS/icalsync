@@ -3,14 +3,17 @@ module Aco
 
   class ::Icalendar::Event
     def to_gcal
-      raise "Not implemeted"
+      raise 'Not implemeted'
     end
   end
 
   class ::Icalendar::Values::Uri
-
     def initialize(v, params = {})
-      parsed = URI.parse v rescue v
+      begin
+        parsed = URI.parse v
+      rescue
+        v
+      end
       super parsed, params
     end
   end

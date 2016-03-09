@@ -1,10 +1,8 @@
 module Google
-
   #
   # CalendarList is the main object you use to find Calendars.
   #
   class CalendarList
-
     attr_reader :connection
 
     #
@@ -18,12 +16,12 @@ module Google
     #
     # See Readme.rdoc or readme_code.rb for an explication on the OAuth2 authorization process.
     #
-    def initialize(params={}, connection=nil)
+    def initialize(params = {}, connection = nil)
       @connection = connection || Connection.new(
-        :client_id => params[:client_id],
-        :client_secret => params[:client_secret],
-        :refresh_token => params[:refresh_token],
-        :redirect_url => params[:redirect_url]
+        client_id: params[:client_id],
+        client_secret: params[:client_secret],
+        refresh_token: params[:refresh_token],
+        redirect_url: params[:redirect_url]
       )
     end
 
@@ -31,13 +29,11 @@ module Google
     # Find all entries on the user's calendar list. Returns an array of CalendarListEntry objects.
     #
     def fetch_entries
-      response = @connection.send("/users/me/calendarList", :get)
+      response = @connection.send('/users/me/calendarList', :get)
 
       return nil if response.status != 200 || response.body.empty?
 
       CalendarListEntry.build_from_google_feed(JSON.parse(response.body), @connection)
     end
-
   end
-
 end
