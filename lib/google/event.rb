@@ -381,6 +381,7 @@ module Google
       \tEnds: #{end_time}
       \tLocation: #{location}
       \tDescription: #{description}
+      \tRecurrence: #{recurrence}
       \tAttendees: #{attendees}\n"
     end
 

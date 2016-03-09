@@ -2,6 +2,7 @@ require 'time'
 require 'open-uri'
 require 'pry'
 require 'ostruct'
+require 'awesome_print'
 
 require_relative 'lib/google_calendar'
 require_relative 'lib/base32/base32'
@@ -151,26 +152,37 @@ module Act
       i
     end
 
-    def parse_rrule(rrule)
-      output = ''
-      output << 'FREQ=' + rrule.frequency unless rrule.frequency.nil?
-      output << ';UNTIL=' + rrule.until unless rrule.until.nil?
-      output << ';COUNT=' + rrule.count.to_s unless rrule.count.nil?
-      output << ';INTERVAL=' + rrule.interval.to_s unless rrule.interval.nil?
-      raise 'BY SECOND?\n' + rrule unless rrule.by_second.nil?
-      raise rrule unless rrule.by_minute.nil?
-      raise rrule unless rrule.by_hour.nil?
-      # raise rrule unless rrule.by_day.nil? || rrule.by_day.count <= 1
-      output << ';BYDAY=' + rrule.by_day.join(',') unless rrule.by_day.nil?
-      raise rrule unless rrule.by_month_day.nil? || rrule.by_month_day.count <= 1
-      output << ';BYMONTHDAY=' + rrule.by_month_day.join(',') unless rrule.by_month_day.nil?
-      raise rrule unless rrule.by_year_day.nil?
-      raise rrule unless rrule.by_week_number.nil?
-      raise rrule unless rrule.by_month.nil? || rrule.by_month.count <= 1
-      output << ';BYMONTH=' + rrule.by_month.join(',') unless rrule.by_month.nil?
-      output << ';BYSETPOS=' + rrule.by_set_position.join(',') unless rrule.by_set_position.nil?
-      raise rrule unless rrule.week_start.nil?
-      output
+    def parse_rrule(rr)
+      return nil if rr.nil? || rr.empty?
+      r=rr[0]
+      # ap r
+      # rrule = ''
+      rrule = {}
+      # rrule << 'FREQ=' + r.frequency unless r.frequency.nil?
+      rrule[:freq] = r.frequency unless r.frequency.nil?
+      # rrule << ';UNTIL=' + r.until unless r.until.nil?
+      rrule[:until] = r.until unless r.until.nil?
+      # rrule << ';COUNT=' + r.count.to_s unless r.count.nil?
+      rrule[:count] = r.count.to_s unless r.count.nil?
+      # rrule << ';INTERVAL=' + r.interval.to_s unless r.interval.nil?
+      rrule[:interval] = r.interval.to_s unless r.interval.nil?
+      raise 'BY SECOND?\n' + r unless r.by_second.nil?
+      raise r unless r.by_minute.nil?
+      raise r unless r.by_hour.nil?
+      # rrule << ';BYDAY=' + r.by_day.join(',') unless r.by_day.nil?
+      rrule[:byday] = r.by_day.join(',') unless r.by_day.nil?
+      raise r unless r.by_month_day.nil? || r.by_month_day.count <= 1
+      # rrule << ';BYMONTHDAY=' + r.by_month_day.join(',') unless r.by_month_day.nil?
+      rrule[:bymonthday] = r.by_month_day.join(',') unless r.by_month_day.nil?
+      raise r unless r.by_year_day.nil?
+      raise r unless r.by_week_number.nil?
+      raise r unless r.by_month.nil? || r.by_month.count <= 1
+      # rrule << ';BYMONTH=' + r.by_month.join(',') unless r.by_month.nil?
+      rrule[:bymonth] = r.by_month.join(',') unless r.by_month.nil?
+      #rrule << ';BYSETPOS=' + r.by_set_position.join(',') unless r.by_set_position.nil?
+      rrule[:bysetpos] = r.by_set_position.join(',') unless r.by_set_position.nil?
+      raise r unless r.week_start.nil?
+      rrule
     end
 
     def parse_attendees(att)
@@ -214,6 +226,7 @@ module Act
       g_evt.description = normalize(i_evt.description)
       g_evt.start_time = Time.parse(i_evt.dtstart.value_ical)
       g_evt.end_time = Time.parse(i_evt.dtend.value_ical) if i_evt.dtend
+      ap g_evt.recurrence = parse_rrule(i_evt.rrule)
       g_evt.transparency = normalize i_evt.transp
       g_evt.status = i_evt.status ? normalize(i_evt.status.downcase) : 'confirmed'
       g_evt.location = normalize i_evt.location

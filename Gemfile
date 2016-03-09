@@ -5,6 +5,7 @@ if RUBY_VERSION.delete('.').to_i < 192
   exit 1
 end
 
+gem 'awesome_print'
 gem 'icalendar'
 gem 'pry'
 gem 'signet', '~> 0.6'
