@@ -6,7 +6,7 @@ if (RUBY_VERSION.gsub(/\./, '').to_i < 192)
   exit 1
 end
 
-gem 'icalendar', '2.2.2'
+gem 'icalendar'
 gem 'pry'
 gem 'signet', '~> 0.6'
 gem 'json', '~> 1.8'
