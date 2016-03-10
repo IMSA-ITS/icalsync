@@ -293,8 +293,8 @@ module Google
       _end = all_day? ? end_time.getlocal.strftime('%Y-%m-%d') : end_time.xmlschema
       json = "\"start\": {\n"
       json += "\t\"#{date_type}\": \"#{_start}\"\n"
-      json += " #{timezone_needed? ? local_timezone_json : ''}"
-      json += "}\n,"
+      json += "\t\ #{timezone_needed? ? local_timezone_json : ''}"
+      json += "},\n"
       json += "\"end\": {\n"
       json += "\t\"#{date_type}\": \"#{_end}\"\n"
       json += (timezone_needed? ? local_timezone_json : '').to_s
@@ -367,7 +367,7 @@ module Google
       rrule = 'RRULE:' + @recurrence.collect { |k, v| "#{k}=#{v}" }.join(';').upcase
       @recurrence[:until] = Time.parse(@recurrence[:until]) if @recurrence[:until]
 
-      "\"recurrence\": [\n\"#{rrule}\"],"
+      "\"recurrence\": [\n\"#{rrule}\"],\n"
     end
 
     #
