@@ -292,13 +292,13 @@ module Google
       _start = all_day? ? start_time.getlocal.strftime('%Y-%m-%d') : start_time.xmlschema
       _end = all_day? ? end_time.getlocal.strftime('%Y-%m-%d') : end_time.xmlschema
       json = "\"start\": {\n"
-      json += "\t\"#{date_type}\": \"#{_start}\"\n"
-      json += "\t\ #{timezone_needed? ? local_timezone_json : ''}"
-      json += "},\n"
+      json += "\t\"#{date_type}\": \"#{_start}\"#{timezone_needed? ? ',' : ''}\n"
+      json += "#{timezone_needed? ? local_timezone_json : ''}"
+      json += "\n},\n"
       json += "\"end\": {\n"
-      json += "\t\"#{date_type}\": \"#{_end}\"\n"
+      json += "\t\"#{date_type}\": \"#{_end}\"#{timezone_needed? ? ',' : ''}\n"
       json += (timezone_needed? ? local_timezone_json : '').to_s
-      json += "},\n"
+      json += "\n},\n"
     end
 
     #
@@ -354,7 +354,9 @@ module Google
     # JSON representation of local timezone
     #
     def local_timezone_json
-      ",\"timeZone\" : \"#{Time.now.getlocal.zone}\""
+      # HAS TO BE IANA ZONE NAME - HARD CODING CST6CDT FOR NOW
+      # "\"timeZone\" : \"#{Time.now.getlocal.zone}\""
+      "\t\"timeZone\" : \"America/Chicago\""
     end
 
     #
@@ -363,7 +365,8 @@ module Google
     def recurrence_json
       return unless @recurrence && @recurrence[:freq]
 
-      @recurrence[:until] = @recurrence[:until].strftime('%Y%m%dT%H%M%SZ') if @recurrence[:until]
+      # Why do we need to do this?  Unnecessary?
+      # @recurrence[:until] = @recurrence[:until].strftime('%Y%m%dT%H%M%SZ') if @recurrence[:until]
       rrule = 'RRULE:' + @recurrence.collect { |k, v| "#{k}=#{v}" }.join(';').upcase
       @recurrence[:until] = Time.parse(@recurrence[:until]) if @recurrence[:until]
 
