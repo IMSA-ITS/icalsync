@@ -10,6 +10,7 @@ require_relative 'lib/ical_to_gcal'
 require_relative 'config'
 
 module Act
+  # Sync
   class Sync
     def initialize(calendar_id, ical_file = nil, debug = false)
       @client_id = RbConfig::CLIENT_ID
@@ -21,14 +22,14 @@ module Act
       #
       # Create an instance of google calendar.
       #
-      raise 'missing option calendar_id' if @calendar_id.nil?
+      fail 'missing option calendar_id' if @calendar_id.nil?
 
       check_token
       check_calendar_id
     end
 
     def check_calendar_id
-      raise "#{@calendar_id} does not exist" unless g_cal.exist?
+      fail "#{@calendar_id} does not exist" unless g_cal.exist?
     end
 
     #
@@ -73,7 +74,7 @@ module Act
     # Return a ICS Calendar Instance
     #
     def get_i_cal
-      raise 'missing ICS file' if @ical_file.nil?
+      fail 'missing ICS file' if @ical_file.nil?
       begin
         file_content = open(@ical_file, &:read)
         icals = Icalendar.parse(file_content)
@@ -167,22 +168,36 @@ module Act
       # rrule << ';INTERVAL=' + r.interval.to_s unless r.interval.nil?
       rrule[:interval] = r.interval.to_s unless r.interval.nil?
       raise 'BY SECOND?\n' + r unless r.by_second.nil?
-      raise r unless r.by_minute.nil?
-      raise r unless r.by_hour.nil?
+      fail r unless r.by_minute.nil?
+      fail r unless r.by_hour.nil?
       # rrule << ';BYDAY=' + r.by_day.join(',') unless r.by_day.nil?
       rrule[:byday] = r.by_day.join(',') unless r.by_day.nil?
       raise r unless r.by_month_day.nil? || r.by_month_day.count <= 1
       # rrule << ';BYMONTHDAY=' + r.by_month_day.join(',') unless r.by_month_day.nil?
       rrule[:bymonthday] = r.by_month_day.join(',') unless r.by_month_day.nil?
       raise r unless r.by_year_day.nil?
-      raise r unless r.by_week_number.nil?
-      raise r unless r.by_month.nil? || r.by_month.count <= 1
+      fail r unless r.by_week_number.nil?
+      fail r unless r.by_month.nil? || r.by_month.count <= 1
       # rrule << ';BYMONTH=' + r.by_month.join(',') unless r.by_month.nil?
       rrule[:bymonth] = r.by_month.join(',') unless r.by_month.nil?
       #rrule << ';BYSETPOS=' + r.by_set_position.join(',') unless r.by_set_position.nil?
       rrule[:bysetpos] = r.by_set_position.join(',') unless r.by_set_position.nil?
       raise r unless r.week_start.nil?
       rrule
+    end
+
+    def parse_organizer(org)
+      return nil if org.nil?
+      ap org
+      ical_str = org.to_ical('string')
+      organizer = ''
+      /mailto:(.*?)(?:;|\Z)/.match(ical_str) do |m|
+        e = m.captures[0] && m.captures[0].downcase
+        organizer = e unless e.include?('\"')
+      end
+      ap organizer
+      organizer
+      exit
     end
 
     def parse_attendees(att)
@@ -277,6 +292,8 @@ module Act
 
       @ical = get_i_cal
       @ical.events.each do |i_evt|
+        parse_organizer(i_evt.organizer)
+        fail
         mock = g_evt_from_i_evt(i_evt, Google::Event.new) # mock object for comparison
         cancelled_ics += 1 if mock.status == 'cancelled'
         # Pick a Google event by ID from google events
