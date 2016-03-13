@@ -198,7 +198,8 @@ module Act
         attendee = {}
         # /EMAIL=(.*?)(?:;|\Z)/.match(ical_str) do |m|
         /mailto:(.*?)(?:;|\Z)/.match(ical_str) do |m|
-          attendee['email'] = m.captures[0] && m.captures[0].downcase
+          e = m.captures[0] && m.captures[0].downcase
+          attendee['email'] = e unless e.include?('\"')
         end
         # email required for google
         next unless attendee['email']
