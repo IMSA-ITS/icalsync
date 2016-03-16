@@ -12,13 +12,14 @@ require_relative 'config'
 module Act
   # Sync
   class Sync
-    def initialize(calendar_id, ical_file = nil, debug = false)
+    def initialize(calendar_id, ical_file = nil, debug = false, organizers = nil)
       @client_id = RbConfig::CLIENT_ID
       @secret = RbConfig::SECRET
       @token_file = File.expand_path RbConfig::TOKEN_FILE # remove this file to re-generate token
       @calendar_id = calendar_id
       @ical_file = ical_file
       @debug = debug
+      @organizers = parse_organizers(organizers)
       #
       # Create an instance of google calendar.
       #
@@ -30,6 +31,12 @@ module Act
 
     def check_calendar_id
       fail "#{@calendar_id} does not exist" unless g_cal.exist?
+    end
+
+    def parse_organizers(orgs)
+      return nil if orgs.nil?
+      ap orgs
+      orgs.split(',')
     end
 
     #
@@ -188,20 +195,18 @@ module Act
 
     def parse_organizer(org)
       return nil if org.nil?
-      ap org
       ical_str = org.to_ical('string')
       organizer = ''
       /mailto:(.*?)(?:;|\Z)/.match(ical_str) do |m|
         e = m.captures[0] && m.captures[0].downcase
         organizer = e unless e.include?('\"')
       end
-      ap organizer
-      organizer
-      exit
+      organizer.downcase
     end
 
     def parse_attendees(att)
       return nil if att.nil? || att.empty?
+      skip_list = ['local@host.local']
       response_status_values = {
         'NEEDS-ACTION' => 'needsAction',
         'ACCEPTED' => 'accepted',
@@ -214,6 +219,7 @@ module Act
         # /EMAIL=(.*?)(?:;|\Z)/.match(ical_str) do |m|
         /mailto:(.*?)(?:;|\Z)/.match(ical_str) do |m|
           e = m.captures[0] && m.captures[0].downcase
+          next if skip_list.any? { |word| e.include?(word) }
           attendee['email'] = e unless e.include?('\"')
         end
         # email required for google
@@ -292,8 +298,11 @@ module Act
 
       @ical = get_i_cal
       @ical.events.each do |i_evt|
-        parse_organizer(i_evt.organizer)
-        fail
+        organizer = parse_organizer(i_evt.organizer)
+        # if organizers are passed as options, skip event if not an organizer
+        unless @organizers.nil?
+          next unless @organizers.include?(organizer)
+        end
         mock = g_evt_from_i_evt(i_evt, Google::Event.new) # mock object for comparison
         cancelled_ics += 1 if mock.status == 'cancelled'
         # Pick a Google event by ID from google events

@@ -17,12 +17,16 @@ OptionParser.new do |opts|
     options.purge = o
   end
 
+  opts.on('-o', '--organizers a@here.cm, b@here.com', 'Only sync ical events with these organizers (comma separated list)') do |o|
+    options.organizers = o
+  end
+
   opts.on('-v', '--verbose', 'Verbose output') do |o|
     options.debug = o
   end
 end.parse!
 
-sync = Act::Sync.new(options.calendar_id, options.ics_file, options.debug)
+sync = Act::Sync.new(options.calendar_id, options.ics_file, options.debug, options.organizers)
 if options.purge
   sync.purge
   exit
