@@ -3,6 +3,8 @@ require 'open-uri'
 require 'pry'
 require 'ostruct'
 require 'awesome_print'
+require 'fileutils'
+require 'logger'
 
 require_relative 'lib/google_calendar'
 require_relative 'lib/base32/base32'
@@ -20,6 +22,8 @@ module Act
       @ical_file = ical_file
       @debug = debug
       @organizers = parse_organizers(organizers)
+      @logger = create_logger
+
       #
       # Create an instance of google calendar.
       #
@@ -27,6 +31,14 @@ module Act
 
       check_token
       check_calendar_id
+    end
+
+    def create_logger
+      user = @organizers[0] unless @organizers.nil?
+      cal_log = 'logs/' + user.split('@')[0] + '/' + @ical_file.split('/')[-1]
+      dirname = File.dirname(cal_log)
+      FileUtils.mkdir_p(dirname) unless File.directory?(dirname)
+      Logger.new(File.open(cal_log + '.log', 'a'))
     end
 
     def check_calendar_id
@@ -260,6 +272,7 @@ module Act
     #
     def debug(s)
       return unless @debug
+      @logger.info s
       puts s
     end
 
