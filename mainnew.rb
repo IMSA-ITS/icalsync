@@ -1,5 +1,5 @@
 require 'dotenv'
-require_relative 'icalsync'
+require_relative 'icalsyncnew'
 require 'optparse'
 
 options = OpenStruct.new

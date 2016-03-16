@@ -6,9 +6,12 @@ if RUBY_VERSION.delete('.').to_i < 192
 end
 
 gem 'awesome_print'
+gem 'dotenv'
+gem 'google-api-client', '0.9'
+gem 'googleauth'
 gem 'icalendar'
 gem 'pry'
-gem 'signet', '~> 0.6'
+# gem 'signet', '~> 0.6'
 gem 'json', '~> 1.8'
 
 group :test do

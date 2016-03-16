@@ -6,7 +6,7 @@ require 'awesome_print'
 require 'fileutils'
 require 'logger'
 
-require_relative 'lib/google_calendar'
+require_relative 'lib/google_calendarnew'
 require_relative 'lib/base32/base32'
 require_relative 'lib/ical_to_gcal'
 require_relative 'config'
@@ -22,15 +22,15 @@ module Act
       @ical_file = ical_file
       @debug = debug
       @organizers = parse_organizers(organizers)
-      @impersonator = impersonator
       @logger = create_logger
+      @impersonator = impersonator
 
       #
       # Create an instance of google calendar.
       #
       fail 'missing option calendar_id' if @calendar_id.nil?
 
-      check_token
+      # check_token
       check_calendar_id
     end
 
@@ -56,11 +56,8 @@ module Act
     #
     def g_cal
       @g_cal ||= Google::Calendar.new(
-        client_id: @client_id,
-        client_secret: @secret,
         calendar: @calendar_id,
-        impersonator: @impersonator,
-        redirect_url: 'urn:ietf:wg:oauth:2.0:oob' # this is what Google uses for 'applications'
+        impersonator: @impersonator
       )
     end
 
@@ -111,13 +108,13 @@ module Act
     #
     def events_are_equal?(a, b)
       return false if a.id != b.id
-      return false if a.title != b.title
+      return false if a.summary != b.summary
       return false if a.status != b.status
       return false if a.description != b.description
       return false if a.location != b.location
       return false if a.transparency != b.transparency
-      return false if a.start_time != b.start_time
-      return false if a.end_time != b.end_time
+      return false if a.start != b.start
+      return false if a.end != b.end
       # a.attendees ||= []
       # b.attendees ||= []
       # if a.attendees && b.attendees
@@ -175,35 +172,31 @@ module Act
 
     def parse_rrule(rr)
       return nil if rr.nil? || rr.empty?
-      r=rr[0]
-      # ap r
-      # rrule = ''
-      rrule = {}
-      # rrule << 'FREQ=' + r.frequency unless r.frequency.nil?
-      rrule[:freq] = r.frequency unless r.frequency.nil?
-      # rrule << ';UNTIL=' + r.until unless r.until.nil?
-      rrule[:until] = r.until unless r.until.nil?
-      # rrule << ';COUNT=' + r.count.to_s unless r.count.nil?
-      rrule[:count] = r.count.to_s unless r.count.nil?
-      # rrule << ';INTERVAL=' + r.interval.to_s unless r.interval.nil?
-      rrule[:interval] = r.interval.to_s unless r.interval.nil?
-      raise 'BY SECOND?\n' + r unless r.by_second.nil?
-      fail r unless r.by_minute.nil?
-      fail r unless r.by_hour.nil?
-      # rrule << ';BYDAY=' + r.by_day.join(',') unless r.by_day.nil?
-      rrule[:byday] = r.by_day.join(',') unless r.by_day.nil?
-      raise r unless r.by_month_day.nil? || r.by_month_day.count <= 1
-      # rrule << ';BYMONTHDAY=' + r.by_month_day.join(',') unless r.by_month_day.nil?
-      rrule[:bymonthday] = r.by_month_day.join(',') unless r.by_month_day.nil?
-      raise r unless r.by_year_day.nil?
-      fail r unless r.by_week_number.nil?
-      fail r unless r.by_month.nil? || r.by_month.count <= 1
-      # rrule << ';BYMONTH=' + r.by_month.join(',') unless r.by_month.nil?
-      rrule[:bymonth] = r.by_month.join(',') unless r.by_month.nil?
-      #rrule << ';BYSETPOS=' + r.by_set_position.join(',') unless r.by_set_position.nil?
-      rrule[:bysetpos] = r.by_set_position.join(',') unless r.by_set_position.nil?
-      raise r unless r.week_start.nil?
-      rrule
+      # ap rr
+      rrules = []
+      rr.each do |r|
+        rrule = {}
+        # rrule << 'FREQ=' + r.frequency unless r.frequency.nil?
+        rrule[:freq] = r.frequency unless r.frequency.nil?
+        rrule[:until] = r.until unless r.until.nil?
+        rrule[:count] = r.count.to_s unless r.count.nil?
+        rrule[:interval] = r.interval.to_s unless r.interval.nil?
+        raise 'BY SECOND?\n' + r unless r.by_second.nil?
+        raise r unless r.by_minute.nil?
+        raise r unless r.by_hour.nil?
+        rrule[:byday] = r.by_day.join(',') unless r.by_day.nil?
+        raise r unless r.by_month_day.nil? || r.by_month_day.count <= 1
+        rrule[:bymonthday] = r.by_month_day.join(',') unless r.by_month_day.nil?
+        raise r unless r.by_year_day.nil?
+        raise r unless r.by_week_number.nil?
+        raise r unless r.by_month.nil? || r.by_month.count <= 1
+        rrule[:bymonth] = r.by_month.join(',') unless r.by_month.nil?
+        rrule[:bysetpos] = r.by_set_position.join(',') unless r.by_set_position.nil?
+        raise r unless r.week_start.nil?
+        rrules << 'RRULE:' + rrule.collect { |k, v| "#{k}=#{v}" }.join(';').upcase
+      end
+      # ap rrules
+      rrules
     end
 
     def parse_organizer(org)
@@ -232,24 +225,25 @@ module Act
       }
       parsed = att.map do |a|
         ical_str = a.to_ical('string')
+        ical_str.delete!('"')
         attendee = {}
         # /EMAIL=(.*?)(?:;|\Z)/.match(ical_str) do |m|
         /mailto:(.*?)(?:;|\Z)/.match(ical_str) do |m|
           e = m.captures[0] && m.captures[0].downcase
           next unless e.include?('@wiu.edu')
           next if skip_list.any? { |word| e.include?(word) }
-          attendee['email'] = e unless e.include?('\"')
+          attendee[:email] = e unless e.include?('\"')
         end
         # email required for google
-        next unless attendee['email']
+        next unless attendee[:email]
         /CN=(.*?)(?:;|\Z)/.match(ical_str) do |m|
-          attendee['displayName'] = m.captures[0]
+          attendee[:displayname] = m.captures[0]
         end
         /PARTSTAT=(.*?)(?:;|\Z)/.match(ical_str) do |m|
           value = response_status_values[m.captures[0]]
-          attendee['responseStatus'] = value
+          attendee[:responsestatus] = value
         end
-        attendee['responseStatus'] = 'needsAction' if attendee['responseStatus'].nil?
+        attendee[:responsestatus] = 'needsAction' if attendee[:responsestatus].nil?
         attendee
       end
       parsed.any? ? parsed.compact : nil
@@ -261,13 +255,13 @@ module Act
     def g_evt_from_i_evt(i_evt, g_evt)
       g_evt ||= Google::Event.new
       g_evt.id = gen_id i_evt
-      g_evt.title = normalize(i_evt.summary) # if i_evt.respond_to? :summary
+      g_evt.summary = normalize(i_evt.summary) # if i_evt.respond_to? :summary
       g_evt.attendees = parse_attendees(i_evt.attendee)
       g_evt.description = normalize(i_evt.description)
-      g_evt.start_time = Time.parse(i_evt.dtstart.value_ical)
-      g_evt.end_time = Time.parse(i_evt.dtend.value_ical) if i_evt.dtend
-      ap g_evt.recurrence = parse_rrule(i_evt.rrule)
-      g_evt.transparency = normalize i_evt.transp
+      g_evt.start = Time.parse(i_evt.dtstart.value_ical)
+      g_evt.end = Time.parse(i_evt.dtend.value_ical) if i_evt.dtend
+      g_evt.recurrence = parse_rrule(i_evt.rrule)
+      g_evt.transparency = normalize i_evt.transp.downcase
       g_evt.status = i_evt.status ? normalize(i_evt.status.downcase) : 'confirmed'
       g_evt.location = normalize i_evt.location
       g_evt
@@ -335,15 +329,23 @@ module Act
           if g_evt # Event found
             if !events_are_equal?(mock, g_evt)
               if g_evt.status == 'cancelled'
-                debug('Restored: ')
+                debug("Restored:\n")
                 restored += 1
               else
-                debug('Updated :')
+                debug("Updated:\n")
                 updated += 1
               end
               g_evt_from_i_evt(i_evt, g_evt)
               debug g_evt
-              g_evt.save
+              Google::Calendar.update_event(@calendar_id, @impersonator, g_evt)
+              # unless g_evt.recurrence.nil?
+              #   ap g_evt.recurrence
+              #   exit
+              # end
+              # unless g_evt.attendees.nil?
+              #   ap g_evt.attendees
+              #   exit
+              # end
             else
               idem += 1
             end
@@ -351,8 +353,18 @@ module Act
             created += 1
             g_evt = g_evt_from_i_evt(i_evt, g_evt)
             g_evt.calendar = g_cal
-            g_evt.save
-            debug "Created #{g_evt}"
+            # g_evt.insert
+            Google::Calendar.insert_event(@calendar_id, @impersonator, g_evt)
+            debug "Created:\n #{g_evt}"
+
+            # unless g_evt.recurrence.nil?
+            #   ap g_evt.recurrence
+            #   exit
+            # end
+            # unless g_evt.attendees.nil?
+            #   ap g_evt.attendees
+            #   exit
+            # end
           end
         rescue Google::HTTPRequestFailed => msg
           p msg
