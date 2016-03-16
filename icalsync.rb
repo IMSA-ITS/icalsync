@@ -47,7 +47,6 @@ module Act
 
     def parse_organizers(orgs)
       return nil if orgs.nil?
-      ap orgs
       orgs.split(',')
     end
 
@@ -208,12 +207,16 @@ module Act
     def parse_organizer(org)
       return nil if org.nil?
       ical_str = org.to_ical('string')
-      organizer = ''
-      /mailto:(.*?)(?:;|\Z)/.match(ical_str) do |m|
-        e = m.captures[0] && m.captures[0].downcase
-        organizer = e unless e.include?('\"')
+      ical_str.delete!('"')
+      organizer = []
+      parsed = ical_str.split(';')
+      parsed.each do |o|
+        /mailto:(.*?)(?:;|\Z)/.match(o) do |m|
+          e = m.captures[0] && m.captures[0].downcase
+          organizer << e.downcase unless e.include?('\"')
+        end
       end
-      organizer.downcase
+      organizer
     end
 
     def parse_attendees(att)
@@ -231,6 +234,7 @@ module Act
         # /EMAIL=(.*?)(?:;|\Z)/.match(ical_str) do |m|
         /mailto:(.*?)(?:;|\Z)/.match(ical_str) do |m|
           e = m.captures[0] && m.captures[0].downcase
+          next unless e.include?('@wiu.edu')
           next if skip_list.any? { |word| e.include?(word) }
           attendee['email'] = e unless e.include?('\"')
         end
@@ -312,10 +316,13 @@ module Act
       @ical = get_i_cal
       @ical.events.each do |i_evt|
         organizer = parse_organizer(i_evt.organizer)
+        ap organizer
         # if organizers are passed as options, skip event if not an organizer
-        unless @organizers.nil?
-          next unless @organizers.include?(organizer)
+        unless @organizers.nil? || @organizers.empty?
+          next if (@organizers & organizer).empty?
         end
+        ap i_evt.summary
+        next
         mock = g_evt_from_i_evt(i_evt, Google::Event.new) # mock object for comparison
         cancelled_ics += 1 if mock.status == 'cancelled'
         # Pick a Google event by ID from google events
