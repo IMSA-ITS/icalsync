@@ -316,13 +316,13 @@ module Act
       @ical = get_i_cal
       @ical.events.each do |i_evt|
         organizer = parse_organizer(i_evt.organizer)
-        ap organizer
-        # if organizers are passed as options, skip event if not an organizer
-        unless @organizers.nil? || @organizers.empty?
+
+        # unless organizers are passed as options or event has no organizer
+        unless @organizers.nil? || organizer.nil?
+          # if arrays don't include any matching organizers, skip event
           next if (@organizers & organizer).empty?
         end
-        ap i_evt.summary
-        next
+
         mock = g_evt_from_i_evt(i_evt, Google::Event.new) # mock object for comparison
         cancelled_ics += 1 if mock.status == 'cancelled'
         # Pick a Google event by ID from google events
