@@ -7,9 +7,10 @@ end
 
 gem 'awesome_print'
 gem 'dotenv'
-gem 'google-api-client', '0.9'
+gem 'google-api-client', '~> 0.9.0'
 gem 'googleauth'
 gem 'icalendar'
+gem 'mime-types', '< 3'
 gem 'pry'
 # gem 'signet', '~> 0.6'
 gem 'json', '~> 1.8'
