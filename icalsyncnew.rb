@@ -335,17 +335,10 @@ module Act
                 debug("Updated:\n")
                 updated += 1
               end
+              next # DO NOT UPDATE EVENTS FOR NOW
               g_evt_from_i_evt(i_evt, g_evt)
               debug g_evt
               Google::Calendar.update_event(@calendar_id, @impersonator, g_evt)
-              # unless g_evt.recurrence.nil?
-              #   ap g_evt.recurrence
-              #   exit
-              # end
-              # unless g_evt.attendees.nil?
-              #   ap g_evt.attendees
-              #   exit
-              # end
             else
               idem += 1
             end
@@ -353,18 +346,13 @@ module Act
             created += 1
             g_evt = g_evt_from_i_evt(i_evt, g_evt)
             g_evt.calendar = g_cal
-            # g_evt.insert
-            Google::Calendar.insert_event(@calendar_id, @impersonator, g_evt)
+            begin
+              Google::Calendar.insert_event(@calendar_id, @impersonator, g_evt)
+            rescue Exception => e
+              next if e.include?('Duplicate')
+              exit
+            end
             debug "Created:\n #{g_evt}"
-
-            # unless g_evt.recurrence.nil?
-            #   ap g_evt.recurrence
-            #   exit
-            # end
-            # unless g_evt.attendees.nil?
-            #   ap g_evt.attendees
-            #   exit
-            # end
           end
         rescue Google::HTTPRequestFailed => msg
           p msg
@@ -372,13 +360,13 @@ module Act
         end
       end
 
-      # Delete remaining Google events
-      g_events.each do |e|
-        next unless e.status != 'cancelled'
-        debug "Delete: #{e}"
-        e.delete
-        removed += 1
-      end
+      # # Delete remaining Google events
+      # g_events.each do |e|
+      #   next unless e.status != 'cancelled'
+      #   debug "Delete: #{e}"
+      #   e.delete
+      #   removed += 1
+      # end
 
       debug "ICAL size: #{@ical.events.size}"
       debug "Idem size: #{idem}"

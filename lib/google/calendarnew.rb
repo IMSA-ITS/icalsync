@@ -243,6 +243,7 @@ module Google
       rescue Exception => e
         # return false if e.to_s.include?('notFound')
         ap e
+        return 'Duplicate Warning' if e.to_s.include?('duplicate')
         exit
       end
       true
