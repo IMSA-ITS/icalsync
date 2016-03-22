@@ -259,6 +259,10 @@ module Act
       g_evt.attendees = parse_attendees(i_evt.attendee)
       g_evt.description = normalize(i_evt.description)
       g_evt.start = Time.parse(i_evt.dtstart.value_ical)
+      if i_evt.dtend.nil?
+        # add end time if nil
+        i_evt.dtend = i_evt.dtstart + 3600
+      end
       g_evt.end = Time.parse(i_evt.dtend.value_ical) if i_evt.dtend
       g_evt.recurrence = parse_rrule(i_evt.rrule)
       g_evt.transparency = normalize i_evt.transp.downcase
@@ -315,8 +319,13 @@ module Act
 
         # unless organizers option is empty or event has no organizer
         unless @organizers.nil? || organizer.nil?
-          # if arrays don't include any matching organizers, skip event
-          next if (@organizers & organizer).empty?
+          if organizer.any? { |o| o.include?('@wiu.edu') }
+            # if arrays don't include any matching WIU organizers, skip event
+            next if (@organizers & organizer).empty?
+          else
+            # Include event if organizer is external, but strip attendees
+            i_evt.attendee = []
+          end
         end
 
         mock = g_evt_from_i_evt(i_evt, Google::Event.new) # mock object for comparison
@@ -346,11 +355,16 @@ module Act
             created += 1
             g_evt = g_evt_from_i_evt(i_evt, g_evt)
             g_evt.calendar = g_cal
+
             begin
               Google::Calendar.insert_event(@calendar_id, @impersonator, g_evt)
             rescue Exception => e
-              next if e.include?('Duplicate')
-              exit
+              next if e.to_s.include?('duplicate')
+              ap e
+              raise e if e.to_s.include?('Google::Apis::RateLimitError:')
+              # puts "ICALSYNCNEW SCRIPT"
+              # ap e
+              #exit
             end
             debug "Created:\n #{g_evt}"
           end

@@ -238,14 +238,19 @@ module Google
       # event.start = { date_time: DateTime.parse(event.start.dup.utc.to_s).rfc3339.to_s, time_zone: 'America/Chicago' }
       # event.end = { date_time: DateTime.parse(event.end.dup.utc.to_s).rfc3339.to_s, time_zone: 'America/Chicago' }
 
-      begin
-        service.insert_event(cal_id, event)
-      rescue Exception => e
-        # return false if e.to_s.include?('notFound')
-        ap e
-        return 'Duplicate Warning' if e.to_s.include?('duplicate')
-        exit
-      end
+      service.insert_event(cal_id, event)
+
+      # begin
+      #   service.insert_event(cal_id, event)
+      # rescue Exception => e
+      #   # return false if e.to_s.include?('notFound')
+      #   return 'Duplicate Warning' if e.to_s.include?('duplicate')
+      #   # raise e if e.to_s.include?('Google::Apis::RateLimitError:')
+      #   # puts "CALENDARNEW CLASS"
+      #   # ap e
+      #   # ap event
+      #   # raise "INSERT_EVENT EXCEPTION:  #{e}\n\n #{event}"
+      # end
       true
     end
 
