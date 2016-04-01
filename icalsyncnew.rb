@@ -11,6 +11,8 @@ require_relative 'lib/base32/base32'
 require_relative 'lib/ical_to_gcal'
 require_relative 'config'
 
+Google::Apis::RequestOptions.default.retries = 100
+
 module Act
   # Sync
   class Sync
