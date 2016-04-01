@@ -253,7 +253,7 @@ module Act
     # Create GCal event from ICal event
     #
     def g_evt_from_i_evt(i_evt, g_evt)
-      g_evt ||= Google::Event.new
+      g_evt ||= Google::Apis::CalendarV3::Event.new
       g_evt.id = gen_id i_evt
       g_evt.summary = normalize(i_evt.summary) # if i_evt.respond_to? :summary
       g_evt.attendees = parse_attendees(i_evt.attendee)
@@ -328,7 +328,7 @@ module Act
           end
         end
 
-        mock = g_evt_from_i_evt(i_evt, Google::Event.new) # mock object for comparison
+        mock = g_evt_from_i_evt(i_evt, Google::Apis::CalendarV3::Event.new) # mock object for comparison
         cancelled_ics += 1 if mock.status == 'cancelled'
         # Pick a Google event by ID from google events
         # and remove it from the list
@@ -354,10 +354,11 @@ module Act
           else # Element not found, create
             created += 1
             g_evt = g_evt_from_i_evt(i_evt, g_evt)
-            g_evt.calendar = g_cal
+            #g_evt.calendar = g_cal
 
             begin
-              Google::Calendar.insert_event(@calendar_id, @impersonator, g_evt)
+              result = Google::Calendar.insert_event(@calendar_id, @impersonator, g_evt)
+              debug result
             rescue Exception => e
               next if e.to_s.include?('duplicate')
               ap e
